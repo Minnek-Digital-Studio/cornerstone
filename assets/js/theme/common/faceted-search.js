@@ -7,6 +7,7 @@ import collapsibleFactory from './collapsible';
 import { Validators } from './utils/form-utils';
 import nod from './nod';
 
+
 const defaultOptions = {
     accordionToggleSelector: '#facetedSearch .accordion-navigation, #facetedSearch .facetedSearch-toggle',
     blockerSelector: '#facetedSearch .blocker',

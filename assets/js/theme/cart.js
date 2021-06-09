@@ -1,26 +1,40 @@
 import PageManager from './page-manager';
 import { bind, debounce } from 'lodash';
-import giftCertCheck from './common/gift-certificate-validator';
+import checkIsGiftCertValid from './common/gift-certificate-validator';
+import { createTranslationDictionary } from './common/utils/translations-utils';
 import utils from '@bigcommerce/stencil-utils';
 import ShippingEstimator from './cart/shipping-estimator';
-import { defaultModal, modalTypes } from './global/modal';
+import { defaultModal } from './global/modal';
 import swal from './global/sweet-alert';
 import CartItemDetails from './common/cart-item-details';
 
 export default class Cart extends PageManager {
     onReady() {
         this.$modal = null;
+        this.$cartPageContent = $('[data-cart]');
         this.$cartContent = $('[data-cart-content]');
         this.$cartMessages = $('[data-cart-status]');
         this.$cartTotals = $('[data-cart-totals]');
         this.$overlay = $('[data-cart] .loadingOverlay')
             .hide(); // TODO: temporary until roper pulls in his cart components
+        this.$activeCartItemId = null;
+        this.$activeCartItemBtnAction = null;
 
+        this.setApplePaySupport();
         this.bindEvents();
+    }
+
+    setApplePaySupport() {
+        if (window.ApplePaySession) {
+            this.$cartPageContent.addClass('apple-pay-supported');
+        }
     }
 
     cartUpdate($target) {
         const itemId = $target.data('cartItemid');
+        this.$activeCartItemId = itemId;
+        this.$activeCartItemBtnAction = $target.data('action');
+
         const $el = $(`#qty-${itemId}`);
         const oldQty = parseInt($el.val(), 10);
         const maxQty = parseInt($el.data('quantityMax'), 10);
@@ -77,7 +91,7 @@ export default class Cart extends PageManager {
             invalidEntry = $el.val();
             $el.val(oldQty);
             return swal.fire({
-                text: `${invalidEntry} is not a valid entry`,
+                text: this.context.invalidEntryMessage.replace('[ENTRY]', invalidEntry),
                 icon: 'error',
             });
         } else if (newQty < minQty) {
@@ -151,8 +165,6 @@ export default class Cart extends PageManager {
             this.productDetails = new CartItemDetails(this.$modal, context);
 
             this.bindGiftWrappingForm();
-
-            modal.setupFocusableElements(modalTypes.CART_CHANGE_PRODUCT);
         });
 
         utils.hooks.on('product-option-change', (event, currentTarget) => {
@@ -220,6 +232,10 @@ export default class Cart extends PageManager {
             const quantity = $('[data-cart-quantity]', this.$cartContent).data('cartQuantity') || 0;
 
             $('body').trigger('cart-quantity-update', quantity);
+
+            $(`[data-cart-itemid='${this.$activeCartItemId}']`, this.$cartContent)
+                .filter(`[data-action='${this.$activeCartItemBtnAction}']`)
+                .trigger('focus');
         });
     }
 
@@ -258,6 +274,7 @@ export default class Cart extends PageManager {
                 text: string,
                 icon: 'warning',
                 showCancelButton: true,
+                cancelButtonText: this.context.cancelButtonText,
             }).then((result) => {
                 if (result.value) {
                     // remove item from cart
@@ -348,9 +365,10 @@ export default class Cart extends PageManager {
 
             event.preventDefault();
 
-            if (!giftCertCheck(code)) {
+            if (!checkIsGiftCertValid(code)) {
+                const validationDictionary = createTranslationDictionary(this.context);
                 return swal.fire({
-                    text: $certInput.data('error'),
+                    text: validationDictionary.invalid_gift_certificate,
                     icon: 'error',
                 });
             }
@@ -439,6 +457,10 @@ export default class Cart extends PageManager {
         this.bindGiftCertificateEvents();
 
         // initiate shipping estimator module
-        this.shippingEstimator = new ShippingEstimator($('[data-shipping-estimator]'));
+        const shippingErrorMessages = {
+            country: this.context.shippingCountryErrorMessage,
+            province: this.context.shippingProvinceErrorMessage,
+        };
+        this.shippingEstimator = new ShippingEstimator($('[data-shipping-estimator]'), shippingErrorMessages);
     }
 }

@@ -2,8 +2,9 @@ import 'foundation-sites/js/foundation/foundation';
 import 'foundation-sites/js/foundation/foundation.dropdown';
 import utils from '@bigcommerce/stencil-utils';
 import ProductDetails from '../common/product-details';
-import { defaultModal, modalTypes } from './modal';
+import { defaultModal } from './modal';
 import 'slick-carousel';
+import { setCarouselState, onSlickCarouselChange, onUserCarouselChange } from '../common/carousel';
 
 export default function (context) {
     const modal = defaultModal();
@@ -20,9 +21,18 @@ export default function (context) {
 
             modal.$content.find('.productView').addClass('productView--quickView');
 
-            modal.$content.find('[data-slick]').slick();
+            const $carousel = modal.$content.find('[data-slick]');
 
-            modal.setupFocusableElements(modalTypes.QUICK_VIEW);
+            if ($carousel.length) {
+                $carousel.on('init breakpoint swipe', setCarouselState);
+                $carousel.on('click', '.slick-arrow, .slick-dots', setCarouselState);
+
+                $carousel.on('init afterChange', (e, carouselObj) => onSlickCarouselChange(e, carouselObj, context));
+                $carousel.on('click', '.slick-arrow, .slick-dots', $carousel, e => onUserCarouselChange(e, context));
+                $carousel.on('swipe', (e, carouselObj) => onUserCarouselChange(e, context, carouselObj.$slider));
+
+                $carousel.slick();
+            }
 
             return new ProductDetails(modal.$content.find('.quickView'), context);
         });

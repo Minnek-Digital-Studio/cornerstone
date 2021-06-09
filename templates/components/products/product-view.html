@@ -13,6 +13,9 @@
             Note that these image sizes are coupled to image sizes used in /assets/js/theme/common/product-details.js
             for variant/rule image replacement
         --}}
+        {{#if product.images.length '>' 1 }}
+        {{> components/carousel-content-announcement}}
+        {{/if}}
         <figure class="productView-image"
                 data-image-gallery-main
                 {{#if product.main_image}}
@@ -42,8 +45,10 @@
         <ul class="productView-thumbnails"{{#gt product.images.length 5}} data-slick='{
                 "infinite": false,
                 "mobileFirst": true,
+                "dots": false,
+                "accessibility": false,
                 "slidesToShow": 5,
-                "slidesToScroll": 1
+                "slidesToScroll": 5
             }'{{/gt}}>
             {{#each product.images}}
                 <li class="productView-thumbnail">
@@ -70,7 +75,7 @@
         <div class="productView-product">
             <h1 class="productView-title" {{#if schema}}itemprop="name"{{/if}}>{{product.title}}</h1>
             {{#if product.brand}}
-                <h2 class="productView-brand"{{#if schema}} itemprop="brand" itemscope itemtype="http://schema.org/Brand"{{/if}}>
+                <h2 class="productView-brand"{{#if schema}} itemprop="brand" itemscope itemtype="https://schema.org/Brand"{{/if}}>
                     <a href="{{product.brand.url}}"{{#if schema}} itemprop="url"{{/if}}><span{{#if schema}} itemprop="name"{{/if}}>{{product.brand.name}}</span></a>
                 </h2>
             {{/if}}
@@ -87,7 +92,7 @@
                 {{/or}}
             </div>
             {{{region name="product_below_price"}}}
-            <div class="productView-rating"{{#if product.num_reviews '>' 0}}{{#if schema}} itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating"{{/if}}{{/if}}>
+            <div class="productView-rating"{{#if product.num_reviews '>' 0}}{{#if schema}} itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating"{{/if}}{{/if}}>
                 {{#if settings.show_product_rating}}
                     {{#if product.num_reviews '>' 0}}
                         {{#if schema}}
@@ -96,12 +101,7 @@
                             <meta itemprop="reviewCount" content="{{product.num_reviews}}">
                         {{/if}}
                     {{/if}}
-                    <span class="productView-ratingWrapper"
-                          title="{{lang 'products.reviews.rating_aria_label' current_rating=product.rating max_rating=5}}"
-                          tabindex="0"
-                    >
                         {{> components/products/ratings rating=product.rating}}
-                    </span>
                     {{#if product.num_reviews '>' 0}}
                         <a href="{{product.url}}#product-reviews" id="productReview_link">
                             {{lang 'products.reviews.link_to_review' total=product.num_reviews}}
@@ -225,6 +225,7 @@
                 <input type="hidden" name="action" value="add">
                 <input type="hidden" name="product_id" value="{{product.id}}"/>
                 <div data-product-option-change style="display:none;">
+                    {{inject 'showSwatchNames' theme_settings.show_product_swatch_names}}
                     {{#each product.options}}
                         {{{dynamicComponent 'components/products/options'}}}
                     {{/each}}
@@ -235,9 +236,7 @@
                         <span data-product-stock>{{product.stock_level}}</span>
                     </label>
                 </div>
-                {{#if product.can_purchase}}
-                    {{> components/products/add-to-cart}}
-                {{/if}}
+                {{> components/products/add-to-cart}}
                 {{#if product.out_of_stock}}
                     {{#if product.out_of_stock_message}}
                         {{> components/common/alert/alert-error product.out_of_stock_message}}
@@ -250,20 +249,16 @@
                 {{> components/common/wishlist-dropdown}}
             {{/if}}
         </div>
-        {{#unless is_ajax}}
-            {{> components/common/share}}
-        {{/unless}}
+        {{> components/common/share url=product.url}}
     </section>
 
-    {{#if product.description}}
-        <article class="productView-description"{{#if schema}} itemprop="description"{{/if}}>
-            {{#if theme_settings.show_product_details_tabs}}
-                {{> components/products/description-tabs}}
-            {{else}}
-                {{> components/products/description}}
-            {{/if}}
-        </article>
-    {{/if}}
+    <article class="productView-description"{{#if schema}} itemprop="description"{{/if}}>
+        {{#if theme_settings.show_product_details_tabs}}
+            {{> components/products/description-tabs}}
+        {{else}}
+            {{> components/products/description}}
+        {{/if}}
+    </article>
 </div>
 
 <div id="previewModal" class="modal modal--large" data-reveal>

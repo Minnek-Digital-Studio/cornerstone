@@ -3,7 +3,12 @@ import stateCountry from './common/state-country';
 import nod from './common/nod';
 import validation from './common/form-validation';
 import forms from './common/models/forms';
-import { classifyForm, Validators, createPasswordValidationErrorTextObject } from './common/utils/form-utils';
+import {
+    classifyForm,
+    Validators,
+    createPasswordValidationErrorTextObject,
+    announceInputErrorMessage,
+} from './common/utils/form-utils';
 import { createTranslationDictionary } from './common/utils/translations-utils';
 
 export default class Auth extends PageManager {
@@ -11,6 +16,7 @@ export default class Auth extends PageManager {
         super(context);
         this.validationDictionary = createTranslationDictionary(context);
         this.formCreateSelector = 'form[data-create-account-form]';
+        this.recaptcha = $('.g-recaptcha iframe[src]');
     }
 
     registerLoginValidation($loginForm) {
@@ -18,6 +24,7 @@ export default class Auth extends PageManager {
 
         this.loginValidator = nod({
             submit: '.login-form input[type="submit"]',
+            tap: announceInputErrorMessage,
         });
 
         this.loginValidator.add([
@@ -55,6 +62,7 @@ export default class Auth extends PageManager {
     registerForgotPasswordValidation($forgotPasswordForm) {
         this.forgotPasswordValidator = nod({
             submit: '.forgot-password-form input[type="submit"]',
+            tap: announceInputErrorMessage,
         });
 
         this.forgotPasswordValidator.add([
@@ -85,6 +93,7 @@ export default class Auth extends PageManager {
         const newPasswordForm = '.new-password-form';
         const newPasswordValidator = nod({
             submit: $(`${newPasswordForm} input[type="submit"]`),
+            tap: announceInputErrorMessage,
         });
         const passwordSelector = $(`${newPasswordForm} input[name="password"]`);
         const password2Selector = $(`${newPasswordForm} input[name="password_confirm"]`);
@@ -102,6 +111,7 @@ export default class Auth extends PageManager {
         const validationModel = validation($createAccountForm, this.context);
         const createAccountValidator = nod({
             submit: `${this.formCreateSelector} input[type='submit']`,
+            tap: announceInputErrorMessage,
         });
         const $stateElement = $('[data-field-type="State"]');
         const emailSelector = `${this.formCreateSelector} [data-field-type='EmailAddress']`;
@@ -175,6 +185,10 @@ export default class Auth extends PageManager {
      * Request is made in this function to the remote endpoint and pulls back the states for country.
      */
     onReady() {
+        if (!this.recaptcha.attr('title')) {
+            this.recaptcha.attr('title', this.context.recaptchaTitle);
+        }
+
         const $createAccountForm = classifyForm(this.formCreateSelector);
         const $loginForm = classifyForm('.login-form');
         const $forgotPasswordForm = classifyForm('.forgot-password-form');
